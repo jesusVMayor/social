@@ -8,15 +8,6 @@ from odoo.tests.common import TransactionCase
 class TestMailActivityDoneMethods(TransactionCase):
     def setUp(self):
         super(TestMailActivityDoneMethods, self).setUp()
-
-        self.employee = self.env["res.users"].create(
-            {
-                "company_id": self.env.ref("base.main_company").id,
-                "name": "Test User",
-                "login": "testuser",
-                "groups_id": [(6, 0, [self.env.ref("base.group_user").id])],
-            }
-        )
         activity_type = self.env["mail.activity.type"].search(
             [("name", "=", "Meeting")], limit=1
         )
@@ -26,10 +17,21 @@ class TestMailActivityDoneMethods(TransactionCase):
                 "res_id": self.env.ref("base.res_partner_1").id,
                 "res_model": "res.partner",
                 "res_model_id": self.env["ir.model"]._get("res.partner").id,
-                "user_id": self.employee.id,
+                "user_id": self.env.user.id,
                 "date_deadline": date.today(),
             }
         )
+        self.act2 = self.env["mail.activity"].create(
+            {
+                "activity_type_id": activity_type.id,
+                "res_id": self.env.ref("base.res_partner_1").id,
+                "res_model": "res.partner",
+                "res_model_id": self.env["ir.model"]._get("res.partner").id,
+                "user_id": self.env.user.id,
+                "date_deadline": date.today(),
+            }
+        )
+        self.act2._action_done()
 
     def test_mail_activity_done(self):
         self.act1._action_done()
@@ -37,7 +39,7 @@ class TestMailActivityDoneMethods(TransactionCase):
         self.assertEqual(self.act1.state, "done")
 
     def test_systray_get_activities(self):
-        act_count = self.employee.with_user(self.employee).systray_get_activities()
+        act_count = self.env.user.systray_get_activities()
         self.assertEqual(
             len(act_count), 1, "Number of activities should be equal to one"
         )
@@ -56,3 +58,9 @@ class TestMailActivityDoneMethods(TransactionCase):
         self.assertEqual(self.act1.state, "done")
         result = res_partner._read_progress_bar(**params)
         self.assertEqual(len(result), 0)
+
+    def test_activity_state_search(self):
+        today_activities = self.env["res.partner"].search(
+            [("activity_state", "=", "today")]
+        )
+        self.assertEqual(len(today_activities), 1)

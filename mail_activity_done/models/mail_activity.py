@@ -1,5 +1,7 @@
 # Copyright 2018-22 ForgeFlow <http://www.forgeflow.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl.html).
+
+
 from odoo import api, fields, models
 from odoo.osv import expression
 
@@ -92,3 +94,23 @@ class MailActivityMixin(models.AbstractModel):
         """
         domain = expression.AND([domain, [("activity_ids.done", "=", False)]])
         return super()._read_progress_bar(domain, group_by, progress_bar)
+
+    def _search_activity_state(self, operator, value):
+        execute_org = self._cr.execute
+
+        def execute(query, params=None, log_exceptions=True):
+            return execute_org(
+                query.replace(
+                    "WHERE mail_activity.res_model = %(res_model_table)s",
+                    "WHERE mail_activity.res_model = %(res_model_table)s AND "
+                    "mail_activity.done = FALSE",
+                ),
+                params=params,
+                log_exceptions=log_exceptions,
+            )
+
+        self._cr.execute = execute
+        try:
+            return super()._search_activity_state(operator, value)
+        finally:
+            self._cr.execute = execute_org
