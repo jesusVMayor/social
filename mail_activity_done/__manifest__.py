@@ -11,4 +11,7 @@
     "data": ["views/mail_activity_views.xml"],
     "pre_init_hook": "pre_init_hook",
     "uninstall_hook": "uninstall_hook",
+    "demo": [
+        "demo/mail_activity.xml",
+    ],
 }
